@@ -6,5 +6,3 @@ add-apt-repository -y ppa:kubuntu-ppa/backports
 add-apt-repository -y ppa:chris-lea/protobuf
 apt-get -y update
 ./caffe-public/scripts/travis/travis_install.sh
-# for boost
-apt-get install libboost-all-dev
