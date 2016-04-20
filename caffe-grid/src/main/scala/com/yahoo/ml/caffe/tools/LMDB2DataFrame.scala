@@ -39,6 +39,11 @@ object LMDB2DataFrame {
     val sqlContext = new SQLContext(sc)
     val df : DataFrame = sqlContext.createDataFrame(rdd, schema)
 
+    //size check
+    val rdd_size = rdd.count()
+    val df_size = df.count()
+    log.info("RDD size:"+rdd_size+" ==> DataFrame size: "+df_size)
+
     //save into output file on HDFS
     log.info("Saving DF at "+conf.outputPath)
     df.write.format(conf.outputFormat).save(conf.outputPath)

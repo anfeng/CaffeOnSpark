@@ -74,10 +74,9 @@ class LmdbRDD(@transient val sc: SparkContext, val lmdb_path: String, val numPar
 
         if (pos_in_partition == part_size) {
           start_key = next.getKey()
-          partitions(part_index+1) = new LmdbPartition(part_index, start_key, part_size)
+          part_index = part_index + 1
+          partitions(part_index) = new LmdbPartition(part_index, start_key, part_size)
         }
-
-        part_index = part_index + 1
       } catch {
         case e: Exception => {
           logWarning(e.toString, e)
