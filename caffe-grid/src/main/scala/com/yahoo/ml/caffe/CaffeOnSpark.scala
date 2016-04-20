@@ -126,7 +126,7 @@ class CaffeOnSpark(@transient val sc: SparkContext) extends Serializable {
     }.collect()
 
     for (i <- rank_2_addresses_n_host)
-      log.info("rank = " + i._1 + ", RDMAaddress = " + i._2.mkString(",") + ", hostname = " + i._3)
+      log.info("rank = " + i._1 + ", address = " + i._2.mkString(",") + ", hostname = " + i._3)
     var numExecutors: Int = sc.getExecutorMemoryStatus.size
     val numDriver: Int = if (sc.isLocal) 0 else 1
     if (conf.clusterSize + numDriver != numExecutors) {
@@ -227,7 +227,6 @@ class CaffeOnSpark(@transient val sc: SparkContext) extends Serializable {
    * @return key/value map for mean values of output layers
    */
   def test[T1,T2](source:DataSource[T1,T2]) : Map[String, Seq[Double]] = {
-    source.conf.isTest = true
     val testDF = features2(source)
 
     var result = new mutable.HashMap[String, Seq[Double]]
@@ -257,7 +256,6 @@ class CaffeOnSpark(@transient val sc: SparkContext) extends Serializable {
    * @return Feature data frame
    */
   def features[T1,T2](source:DataSource[T1,T2]) : DataFrame = {
-    source.conf.isTest = false
     var featureDF = features2(source)
 
     //take action to force featureDF persisted
