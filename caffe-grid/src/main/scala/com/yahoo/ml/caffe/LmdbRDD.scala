@@ -49,7 +49,7 @@ class LmdbRDD(@transient val sc: SparkContext, val lmdb_path: String, val numPar
     val size: Long = db.stat().ms_entries
     val part_size: Int = Math.ceil(size.toDouble / numPartitions.toDouble).toInt
 
-    var failed = false
+    var is_done = false
     var next: Entry = null
     val partitions = new Array[Partition](numPartitions)
     //last key in previous partition
@@ -58,7 +58,7 @@ class LmdbRDD(@transient val sc: SparkContext, val lmdb_path: String, val numPar
     var part_index: Int = 0
     partitions(part_index) = new LmdbPartition(part_index, null, part_size)
 
-    while (failed == false && (part_index+1) < numPartitions) {
+    while (is_done == false && (part_index+1) < numPartitions) {
       val txn = env.createReadTransaction()
 
       try {
@@ -72,15 +72,18 @@ class LmdbRDD(@transient val sc: SparkContext, val lmdb_path: String, val numPar
           pos_in_partition = pos_in_partition + 1
         }
 
-        if (pos_in_partition == part_size) {
-          start_key = next.getKey()
+        //start key for next partition
+        if (it.hasNext) {
+          start_key = it.next().getKey()
           part_index = part_index + 1
           partitions(part_index) = new LmdbPartition(part_index, start_key, part_size)
+        } else {
+          is_done = true
         }
       } catch {
         case e: Exception => {
           logWarning(e.toString, e)
-          failed = true
+          is_done = true
         }
       } finally {
         commit(txn)
@@ -88,12 +91,8 @@ class LmdbRDD(@transient val sc: SparkContext, val lmdb_path: String, val numPar
     }
     closeDB()
 
-    if (failed) {
-      null
-    } else {
-      logInfo(partitions.length + " LMDB RDD partitions")
-      partitions
-    }
+    logInfo((part_index+1) + " LMDB RDD partitions")
+    partitions
   }
 
   override def compute(thePart: Partition, context: TaskContext):
@@ -105,7 +104,7 @@ class LmdbRDD(@transient val sc: SparkContext, val lmdb_path: String, val numPar
       val part = thePart.asInstanceOf[LmdbPartition]
       val txn: Transaction = env.createReadTransaction()
       var pos_in_partition: Int = 0
-      var it = if (txn != null) {
+      var it = if (part != null && txn != null) {
         if (part.startKey == null) db.iterate(txn) else db.seek(txn, part.startKey)
       }
       else {
